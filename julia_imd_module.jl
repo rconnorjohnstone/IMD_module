@@ -9,7 +9,8 @@
 module imd
 using LinearAlgebra, PlotlyJS
 
-export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
+export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet,Star,Moon,
+KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
 # -----------------------------------------------------------------------------
 # DEFINING CONSTANTS
@@ -95,35 +96,35 @@ export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
   struct Planet <: Body
 
     name::String
-    μ::Float
-    r::Float
-    a::Float
-    j2::Float
+    μ::Real
+    r::Real
+    a::Real
+    j2::Real
     col::Symbol
-    d_size::Float
+    d_size::Real
 
   end
 
   struct Star <: Body
 
     name::String
-    μ::Float
-    r::Float
+    μ::Real
+    r::Real
     col::Symbol
-    d_size::Float
+    d_size::Real
 
   end
 
   struct Moon <: Body
 
     name::String
-    μ::Float
-    r::Float
-    a_planet::Float
-    a_moon::Float
-    j2::Float
+    μ::Real
+    r::Real
+    a_planet::Real
+    a_moon::Real
+    j2::Real
     col::Symbol
-    d_size::Float
+    d_size::Real
 
   end
 
@@ -231,7 +232,7 @@ export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
   struct Solution
 
     x::Array
-    t::Array{Float,1}
+    t::Array{Real,1}
 
   end
 
@@ -329,7 +330,7 @@ export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
   end
 
   function norm3BP(
-    state::Array{Float,1},t::Float,L::Float,GM1::Float,GM2::Float)
+    state::Array{Real,1},t::Real,L::Real,GM1::Real,GM2::Real)
 
     x = state[1:3]
     v = state[4:6]
@@ -343,7 +344,7 @@ export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
   end
 
   function norm3BP(
-    state::Array{Float,1},L::Float,GM1::Float,GM2::Float)
+    state::Array{Real,1},L::Real,GM1::Real,GM2::Real)
 
     x = state[1:3]
     v = state[4:6]
@@ -355,7 +356,7 @@ export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
 
   end
 
-  function norm3BP(t::Float,L::Float,GM1::Float,GM2::Float)
+  function norm3BP(t::Real,L::Real,GM1::Real,GM2::Real)
 
     n = √((GM1 + GM2)/L^3)
     t *= n
@@ -363,36 +364,36 @@ export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
 
   end
 
-  function norm3BP(state::Array{Float,1},t::Real,L::Real,GM1::Real,GM2::Real)
+  function norm3BP(state::Array{Real,1},t::Real,L::Real,GM1::Real,GM2::Real)
 
-    t = typeof(t) != Float ? Float(t) : t
-    L = typeof(L) != Float ? Float(L) : L
-    GM1 = typeof(GM1) != Float ? GM1 = Float(GM1) : GM1
-    GM2 = typeof(GM2) != Float ? GM2 = Float(GM2) : GM2
+    t = typeof(t) != Real ? Real(t) : t
+    L = typeof(L) != Real ? Real(L) : L
+    GM1 = typeof(GM1) != Real ? GM1 = Real(GM1) : GM1
+    GM2 = typeof(GM2) != Real ? GM2 = Real(GM2) : GM2
     return norm3BP(state,t,L,GM1,GM2)
 
   end
 
   function norm3BP(t::Real,L::Real,GM1::Real,GM2::Real)
 
-    t = typeof(t) != Float ? Float(t) : t
-    L = typeof(L) != Float ? Float(L) : L
-    GM1 = typeof(GM1) != Float ? GM1 = Float(GM1) : GM1
-    GM2 = typeof(GM2) != Float ? GM2 = Float(GM2) : GM2
+    t = typeof(t) != Real ? Real(t) : t
+    L = typeof(L) != Real ? Real(L) : L
+    GM1 = typeof(GM1) != Real ? GM1 = Real(GM1) : GM1
+    GM2 = typeof(GM2) != Real ? GM2 = Real(GM2) : GM2
     return norm3BP(state,t,L,GM1,GM2)
 
   end
 
-  function norm3BP(state::Array{Float,1},L::Real,GM1::Real,GM2::Real)
+  function norm3BP(state::Array{Real,1},L::Real,GM1::Real,GM2::Real)
 
-    L = typeof(L) != Float ? Float(L) : L
-    GM1 = typeof(GM1) != Float ? GM1 = Float(GM1) : GM1
-    GM2 = typeof(GM2) != Float ? GM2 = Float(GM2) : GM2
+    L = typeof(L) != Real ? Real(L) : L
+    GM1 = typeof(GM1) != Real ? GM1 = Real(GM1) : GM1
+    GM2 = typeof(GM2) != Real ? GM2 = Real(GM2) : GM2
     return norm3BP(state,L,GM1,GM2)
 
   end
 
-  function norm3BP(state::State,t::Float,date::Float,body2::Body)
+  function norm3BP(state::State,t::Real,date::Real,body2::Body)
 
     body1 = state.central_body
     GM1 = body1.μ
@@ -405,7 +406,7 @@ export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
 
   end
 
-  function norm3BP(state::State,date::Float,body2::Body)
+  function norm3BP(state::State,date::Real,body2::Body)
 
     body1 = state.central_body
     GM1 = body1.μ
@@ -420,20 +421,20 @@ export μs,rs,as,j2s,p_colors,AU,State,Body,Solution,RK4,Planet
 
   function norm3BP(state::State,t::Real,date::Real,body2::Body)
 
-    t = typeof(t) != Float ? Float(t) : t
-    date = typeof(date) != Float ? Float(date) : date
+    t = typeof(t) != Real ? Real(t) : t
+    date = typeof(date) != Real ? Real(date) : date
     return norm3BP(state,t,date,body2)
 
   end
 
   function norm3BP(state::State,date::Real,body2::Body)
 
-    date = typeof(date) != Float ? Float(date) : date
+    date = typeof(date) != Real ? Real(date) : date
     return norm3BP(state,date,body2)
 
   end
 
-  function JD_to_str(J::Float)
+  function JD_to_str(J::Real)
 
     J = J+0.5
     y = 4716; j = 1401; m = 2; n = 12; r = 4; p = 1461
@@ -524,7 +525,7 @@ using .Integrate,.ForceModels,.Lamberts
 
   end
 
-  function ψ_to_rp(ψ::Float,v_inf::Float,μ::Float)
+  function ψ_to_rp(ψ::Real,v_inf::Real,μ::Real)
 
     ρ = (π - ψ)/2
     return (((1/cos(ρ))-1)*μ)/norm(v_inf)^2
@@ -532,7 +533,7 @@ using .Integrate,.ForceModels,.Lamberts
   end
 
   function bplane(
-    v_inf_in::Array{Float,1},v_inf_out::Array{Float,1},μ::Float)
+    v_inf_in::Array{Real,1},v_inf_out::Array{Real,1},μ::Real)
 
     abs(norm(v_inf_in) - norm(v_inf_out)) > 0.1 &&
     error("Velocities are too different")
@@ -553,7 +554,7 @@ using .Integrate,.ForceModels,.Lamberts
 
   end
 
-  function bplane(v_inf_in::Array,v_inf_out::Array,μ::Float)
+  function bplane(v_inf_in::Array,v_inf_out::Array,μ::Real)
 
     abs(norm(v_inf_in) - norm(v_inf_out)) > 0.1 &&
     error("Velocities are too different")
@@ -574,7 +575,7 @@ using .Integrate,.ForceModels,.Lamberts
 
   end
 
-  function bplane(v_inf_in::Array{Any,1},v_inf_out::Array{Any,1},μ::Float)
+  function bplane(v_inf_in::Array{Any,1},v_inf_out::Array{Any,1},μ::Real)
 
     v_inf = norm(v_inf_in)
     ψ = acos(dot(v_inf_in,v_inf_out)/(norm(v_inf_in)*norm(v_inf_out)))
@@ -619,7 +620,7 @@ using .Integrate,.ForceModels,.Lamberts
 
   end
 
-  function patched_conics(v_inf::Float,μ::Float,final_ξ::Float,r::Float)
+  function patched_conics(v_inf::Real,μ::Real,final_ξ::Real,r::Real)
 
     flyby_ξ = v_inf^2/2
     flyby_vel = √(2*(flyby_ξ + μ/r))
@@ -634,7 +635,7 @@ using .Integrate,.ForceModels,.Lamberts
 # ------------------------------------------------------------------------------
 
   function plot_integrated(
-    path::Array{Float,2},
+    path::Array{Real,2},
     central_body::Body,
     plot_theme::Symbol=:juno,
     title::String="Spacecraft Position")
@@ -699,8 +700,8 @@ using .Integrate,.ForceModels,.Lamberts
     p1::Planet,p2::Planet,date1::Real,date2::Real,N::Int64=100000)
 
     t1 = 86400date1; t2 = 86400date2
-    p1_path = Array{Float,2}(undef, 0, 6)
-    p2_path = Array{Float,2}(undef, 0, 6)
+    p1_path = Array{Real,2}(undef, 0, 6)
+    p2_path = Array{Real,2}(undef, 0, 6)
     for date in range(date1,date2,length=100)
         p1_path = [p1_path; ephemeris(p1,date).cart_vec' ]
         p2_path = [p2_path; ephemeris(p2,date).cart_vec' ]
@@ -768,7 +769,7 @@ using .Integrate,.ForceModels,.Lamberts
   end
 
   function plot_lamberts(
-    p1_name::String,p2_name::String,date1::Float,date2::Float,N::Int64=100000)
+    p1_name::String,p2_name::String,date1::Real,date2::Real,N::Int64=100000)
 
     p1 = imd.Planet(p1_name)
     p2 = imd.Planet(p2_name)
@@ -782,8 +783,8 @@ using .Integrate,.ForceModels,.Lamberts
   function porkchop(
     p1::Planet,
     p2::Planet,
-    leave::Array{Float,1},
-    arrive::Array{Float,1};
+    leave::Array{Real,1},
+    arrive::Array{Real,1};
       outs::Array{String,1}=["v_inf","C3"],
       M::Real=100,
       N::Real=100,
@@ -821,7 +822,7 @@ using .Integrate,.ForceModels,.Lamberts
         p1_leave_state = ephemeris(p1,t1)
         p2_arrive_state = ephemeris(p2,t2)
         try
-          outputs[:,i,j] = Array{Float,1}(lamberts(p1,p2,t1,t2,outs=outs))
+          outputs[:,i,j] = Array{Real,1}(lamberts(p1,p2,t1,t2,outs=outs))
         catch
           outputs[:,i,j] = NaN*ones(size(outputs[:,i,j]))
         end
@@ -842,7 +843,7 @@ using .Integrate,.ForceModels,.Lamberts
       costfxn::Function=emp,
       fxnargs=())
 
-    leave = Float.(leave) ; arrive = Float.(arrive)
+    leave = Real.(leave) ; arrive = Real.(arrive)
 
     if costfxn != emp
       return porkchop(
@@ -864,8 +865,8 @@ using .Integrate,.ForceModels,.Lamberts
   function porkchop(
     p1_name::String,
     p2_name::String,
-    leave::Array{Float,1},
-    arrive::Array{Float,1};
+    leave::Array{Real,1},
+    arrive::Array{Real,1};
       outs::Array{String,1}=["v_inf","C3"],
       M::Real=100,
       N::Real=100,
@@ -895,14 +896,14 @@ using .Integrate,.ForceModels,.Lamberts
     p1_name::String,
     p2_name::String,
     leave::Array{Number,1},
-    arrive::Array{Float,1};
+    arrive::Array{Real,1};
       outs::Array{String,1}=["v_inf","C3"],
       M::Real=100,
       N::Real=100,
       costfxn::Function=emp,
       fxnargs=())
 
-    leave = Float.(leave) ; arrive = Float.(arrive)
+    leave = Real.(leave) ; arrive = Real.(arrive)
 
     if costfxn != emp
       return porkchop(
@@ -924,14 +925,14 @@ using .Integrate,.ForceModels,.Lamberts
   function porkchop_plot(
     p1::Planet,
     p2::Planet,
-    leave::Array{Float,1},
-    arrive::Array{Float,1};
+    leave::Array{Real,1},
+    arrive::Array{Real,1};
       outs::Array{String,1}=["v_inf","C3"],
       M::Real=100,
       N::Real=100,
       plt_title::String="Porkchop Plot",
       costfxn::Function=emp,
-      levels::Dict{String,Array{Array{Float,1},1}}=
+      levels::Dict{String,Array{Array{Real,1},1}}=
       Dict("v_inf" => [[13., 0.5, 15.],[15., 1., 21.]],
       "C3" => [[120., 5., 160.],[160., 10., 300.]]))
 
@@ -987,11 +988,11 @@ using .Integrate,.ForceModels,.Lamberts
       N::Real=100,
       plt_title::String="Porkchop Plot",
       costfxn::Function=emp,
-      levels::Dict{String,Array{Array{Float,1},1}}=
+      levels::Dict{String,Array{Array{Real,1},1}}=
       Dict("v_inf" => [[13., 0.5, 15.],[15., 1., 21.]],
       "C3" => [[120., 5., 160.],[160., 10., 300.]]))
 
-      leave = Float.(leave) ; arrive = Float.(arrive)
+      leave = Real.(leave) ; arrive = Real.(arrive)
 
     if costfxn != emp
       return porkchop_plot(
@@ -1023,14 +1024,14 @@ using .Integrate,.ForceModels,.Lamberts
   function porkchop_plot(
     p1_name::String,
     p2_name::String,
-    leave::Array{Float,1},
-    arrive::Array{Float,1};
+    leave::Array{Real,1},
+    arrive::Array{Real,1};
       outs::Array{String,1}=["v_inf","C3"],
       M::Real=100,
       N::Real=100,
       plt_title::String="Porkchop Plot",
       costfxn::Function=emp,
-      levels::Dict{String,Array{Array{Float,1},1}}=
+      levels::Dict{String,Array{Array{Real,1},1}}=
       Dict("v_inf" => [[13., 0.5, 15.],[15., 1., 21.]],
       "C3" => [[120., 5., 160.],[160., 10., 300.]]))
 
@@ -1068,17 +1069,17 @@ using .Integrate,.ForceModels,.Lamberts
     p1_name::String,
     p2_name::String,
     leave::Array{Number,1},
-    arrive::Array{Float,1};
+    arrive::Array{Real,1};
       outs::Array{String,1}=["v_inf","C3"],
       M::Real=100,
       N::Real=100,
       plt_title::String="Porkchop Plot",
       costfxn::Function=emp,
-      levels::Dict{String,Array{Array{Float,1},1}}=
+      levels::Dict{String,Array{Array{Real,1},1}}=
       Dict("v_inf" => [[13., 0.5, 15.],[15., 1., 21.]],
       "C3" => [[120., 5., 160.],[160., 10., 300.]]))
 
-    leave = Float.(leave) ; arrive = Float.(arrive)
+    leave = Real.(leave) ; arrive = Real.(arrive)
 
     if costfxn != emp
       return porkchop_plot(

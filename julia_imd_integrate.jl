@@ -41,7 +41,7 @@ module Integrate
 
   const c_dp5 = [0, 1//5, 3//10, 4//5, 8//9, 1, 1]
 
-  function RK4(x::Vector,t::Float64,h::Float64,f::Function,args...)
+  function RK4(x::Vector,t::Real,h::Real,f::Function,args...)
 
     a = [ 0 0     0     0;
           0 1//2  0     0;
@@ -58,7 +58,7 @@ module Integrate
 
   end
 
-  function RK4(x::Float64,t::Float64,h::Float64,f::Function,args...)
+  function RK4(x::Real,t::Real,h::Real,f::Function,args...)
 
     a = [0  0     0     0;
          0  1//2  0     0;
@@ -75,12 +75,12 @@ module Integrate
 
   end
 
-  function DP5(x::Array{Float64,1},
-    t::Float64,
-    h::Float64,
+  function DP5(x::Array{Real,1},
+    t::Real,
+    h::Real,
     f::Function,args...;
-      reltol::Float64=1e-1,
-      abstol::Float64=1e-1,
+      reltol::Real=1e-1,
+      abstol::Real=1e-1,
       a::Array{Rational{Int64},2}=a_dp5,
       b::Array{Rational{Int64},1}=b_dp5,
       b2::Array{Rational{Int64},1}=b2_dp5,
@@ -110,8 +110,8 @@ module Integrate
   end
 
   function DP5(
-    x::Float64,t::Float64,h::Float64,f::Function,args...;
-    reltol::Float64=1e-1,abstol::Float64=1e-1)
+    x::Real,t::Real,h::Real,f::Function,args...;
+    reltol::Real=1e-1,abstol::Real=1e-1)
 
     a = [0 0           0            0           0         0            0;
          0 1//5        0            0           0         0            0;
@@ -156,16 +156,16 @@ module Integrate
   function Solver(
     m::Function,
     x0::Vector,
-    t0::Float64,
-    tf::Float64,
+    t0::Real,
+    tf::Real,
     N::Int64,
     f::Function,
     args...)
 
     h = (tf-t0)/N
     d = length(x0)
-    ts = zeros(Float64,N+1)
-    xs = zeros(Float64,d,N+1)
+    ts = zeros(Real,N+1)
+    xs = zeros(Real,d,N+1)
 
     ts[1] = t0
     xs[:,1] = x0
@@ -178,17 +178,17 @@ module Integrate
 
   function Solver(
     m::Function,
-    x0::Float64,
-    t0::Float64,
-    tf::Float64,
+    x0::Real,
+    t0::Real,
+    tf::Real,
     N::Int64,
     f::Function,
     args...)
 
     h = (tf-t0)/N
     d = length(x0)
-    ts = zeros(Float64,N+1)
-    xs = zeros(Float64,N+1)
+    ts = zeros(Real,N+1)
+    xs = zeros(Real,N+1)
 
     ts[1] = t0
     xs[1] = x0
@@ -210,7 +210,7 @@ module Integrate
     f::Function,
     args...)
 
-    t0,tf,N = Float64(t0),Float64(tf),Int64(N)
+    t0,tf,N = Real(t0),Real(tf),Int64(N)
     return Solver(m,x0,t0,tf,N,f,args...)
 
   end
@@ -218,7 +218,7 @@ module Integrate
   function Solver(
     m::Function,x0::Real,t0::Real,tf::Real,N::Real,f::Function,args...)
 
-    x0,t0,tf,N = Float64(x0),Float64(t0),Float64(tf),Int64(N)
+    x0,t0,tf,N = Real(x0),Real(t0),Real(tf),Int64(N)
     return Solver(m,x0,t0,tf,N,f,args...)
 
   end
@@ -226,12 +226,12 @@ module Integrate
   function Solver(
     m::Function,
     x0::Vector,
-    t0::Float64,
-    tf::Float64,
+    t0::Real,
+    tf::Real,
     f::Function,
     args...;
-      reltol::Float64=1e-1,
-      abstol::Float64=1e-1)
+      reltol::Real=1e-1,
+      abstol::Real=1e-1)
       h = min(reltol*norm(x0),
       abstol)
 
@@ -252,13 +252,13 @@ module Integrate
 
   function Solver(
     m::Function,
-    x0::Float64,
-    t0::Float64,
-    tf::Float64,
+    x0::Real,
+    t0::Real,
+    tf::Real,
     f::Function,
     args...;
-      reltol::Float64=1e-1,
-      abstol::Float64=1e-1)
+      reltol::Real=1e-1,
+      abstol::Real=1e-1)
 
     h = min(reltol*norm(x0), abstol)
     d = length(x0)
@@ -283,10 +283,10 @@ module Integrate
     tf::Real,
     f::Function,
     args...;
-      reltol::Float64=1e-1,
-      abstol::Float64=1e-1)
+      reltol::Real=1e-1,
+      abstol::Real=1e-1)
 
-    t0,tf = Float64(t0),Float64(tf)
+    t0,tf = Real(t0),Real(tf)
     return Solver(m,x0r,t0,tf,f,args...,reltol=reltol,abstol=abstol)
 
   end
@@ -298,10 +298,10 @@ module Integrate
     tf::Real,
     f::Function,
     args...;
-      reltol::Float64=1e-1,
-      abstol::Float64=1e-1)
+      reltol::Real=1e-1,
+      abstol::Real=1e-1)
 
-    x0,t0,tf = Float64(x0),Float64(t0),Float64(tf)
+    x0,t0,tf = Real(x0),Real(t0),Real(tf)
     return Solver(m,x0r,t0,tf,f,args...,reltol=reltol,abstol=abstol)
 
   end
@@ -341,7 +341,7 @@ module ForceModels
 
   end
 
-  function norm_EOM_3BP(state::Array{Float64,1},μ::Float64,t::Float64)
+  function norm_EOM_3BP(state::Array{Real,1},μ::Real,t::Real)
 
     x,y,z,xd,yd,zd = state
     r1 = √((x+μ)^2 + y^2 + z^2)
@@ -353,7 +353,7 @@ module ForceModels
 
   end
 
-  function norm_3BP_STM(state::Array{Float64,1},μ::Float64,t::Float64)
+  function norm_3BP_STM(state::Array{Real,1},μ::Real,t::Real)
 
     Φ = reshape(state[7:end],6,6)
 
@@ -393,7 +393,7 @@ module Lamberts
 
   export lamberts, costed_lamberts, solve_lamberts
 
-  function solve_lamberts(state1::State,state2::State,tof_req::Real)
+  function solve_lamberts(state1::T,state2::T,tof_req::Real) where T <: State
 
     r1 = state1.cart_vec[1:3] ; r1mag = norm(r1)
     r2 = state2.cart_vec[1:3] ; r2mag = norm(r2)
