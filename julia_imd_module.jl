@@ -15,6 +15,8 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 # -----------------------------------------------------------------------------
 # DEFINING CONSTANTS
 # -----------------------------------------------------------------------------
+
+# Gravitational Constants
   const μs = Dict(
   "Sun" => 1.32712440018e11,
   "Mercury" => 2.2032e4,
@@ -28,6 +30,7 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
   "Neptune" => 6.809e6,
   "Pluto" => 9e2)
 
+# Radii
   const rs = Dict(
   "Sun" => 696000.,
   "Mercury" => 2439.,
@@ -41,6 +44,7 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
   "Neptune" => 24764.,
   "Pluto" => 1151.)
 
+# Semi Major Axes
   const as = Dict(
   "Mercury" => 57909083.,
   "Venus" => 108208601.,
@@ -53,6 +57,7 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
   "Neptune" => 4504449769.,
   "Pluto" => 5915799000.)
 
+# J2 for basic oblateness
   const j2s = Dict(
   "Mercury" => 0.00006,
   "Venus" => 0.000027,
@@ -65,6 +70,7 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
   "Neptune" => 0.004,
   "Pluto" => 0.)
 
+# These are just the colors for plots
   const p_colors = Dict(
   "Sun" => :Electric,
   "Mercury" => :heat,
@@ -78,6 +84,7 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
   "Neptune" => :ice,
   "Pluto" => :matter)
 
+# This part is just for defining what's what later
   stars = ("Sun",)
 
   planets =
@@ -91,8 +98,21 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 # DEFINING PLANETARY OBJECTS
 # -----------------------------------------------------------------------------
 
+"""
+The Body class is the basic class that covers all sorts of planetary bodies.
+Each type of Body contains different fields, but they all contain:
+ - name
+ - gravitational parameter
+ - radius
+ - color (for plotting)
+ - diameter (for plotting purposes, may be scaled)
+"""
   abstract type Body end
 
+"""
+Planets are pretty self explanatory. Each planetary body also contains a j2 
+coefficient.
+"""
   struct Planet <: Body
 
     name::String
@@ -105,6 +125,9 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""
+Currently, the Sun is the only Star
+"""
   struct Star <: Body
 
     name::String
@@ -115,6 +138,9 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""
+Currently only one Moon (Luna) is supported
+"""
   struct Moon <: Body
 
     name::String
@@ -128,6 +154,10 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""
+The constructor for the Body class will just call the appropriate smaller
+constructor (in other words, Body is abstract only)
+"""
   function Body(name::String)
 
     if name in stars
@@ -143,6 +173,7 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""Star constructor"""
   Star(name::String) = Star(
   name,
   μs[name],
@@ -150,6 +181,7 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
   p_colors[name],
   15*rs[name])
 
+"""Planet constructor"""
   Planet(name::String) = Planet(
   name,
   μs[name],
@@ -159,6 +191,7 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
   p_colors[name],
   rs[name])
 
+"""Moon constructor"""
   Moon(name::String) =Moon(
   name,
   μs[name],
@@ -173,8 +206,22 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 # DEFINING STATE OBJECTS
 # ------------------------------------------------------------------------------
 
+"""
+States are an important part of the imd module. If I did my job correctly, then
+the vast majority of the functions in this module should be written to operate
+on states. I'm not a big fan of OOP just for the sake of it. The idea behind
+enforcing a state class is to ensure that the vector which describes that state
+is of the correct type (pos/vel, keplerian, etc.) so that errors don't occur
+"""
   abstract type State end
 
+"""
+Cartesian states are the most basic kinds of states. Simply define a position
+and velocity. Frame choice isn't currently strictly implemented.
+
+TODO: Determine the frame choice and possibly allow for representation in 
+multiple frames.
+"""
   struct CartesianState <: State
 
     cart_vec::Vector
@@ -183,6 +230,12 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""
+Keplerian states also have a cartesian state vector (for use in the majority
+of the functions). However, they are also described by a 6 element Vector of
+semi-major axis, eccentricity, inclination, RAAN, argument of periapsis, and
+true anomaly. All angular quantities are in radians.
+"""
   struct KepState <: State
 
     cart_vec::Vector
@@ -192,6 +245,12 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""
+Also called a  RIC state in some contexts, this is a basic Hill-frame defined 
+orbit. The components of the RΘH frame must fit normal conventions (Θ and H 
+components of position and H component of velocity must be zero). Also contains
+within it a Cartesian state vector
+"""
   struct RθHState <: State
 
     cart_vec::Vector
@@ -201,12 +260,18 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""
+Constructor for a Cartesian State (shortcutted with 'State')
+"""
   function State(vec::Vector,central_body::Body,name::String="Spaceraft")
 
     return CartesianState(vec,central_body,name)
 
   end
 
+"""
+Constructor for a KepState
+"""
   function KepState(oe::Vector,central_body::Body,name::String="Spaceraft")
 
     cart_vec = oe_to_xyz(oe,central_body.μ)
@@ -214,6 +279,11 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""
+Constructor for a KepState, starting with a Cartesian State
+
+This provides for very simple conversion
+"""
   function KepState(cart_state::CartesianState)
 
     oe = xyz_to_oe(cart_state.cart_vec,cart_state.central_body.μ)
@@ -229,6 +299,10 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 # OTHER TYPE DEFINITIONS
 # ------------------------------------------------------------------------------
 
+"""
+MOSTLY DEFUNCT
+Used for numerical integration. I recommend instead using ForwardDiff
+"""
   struct Solution
 
     x::Array
@@ -240,6 +314,10 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 # FUNCTIONS THAT OTHER MODULES CAN RELY ON
 # ------------------------------------------------------------------------------
 
+"""
+Provides a really basic, but fast, ephemeris for most planets.
+TODO: Update with more accurate ephemeris
+"""
   function ephemeris(planet::Planet,date::Real)
 
     century = (date-2451545)/36525
@@ -322,6 +400,9 @@ KepState,CartesianState,solve_lamberts,lamberts,costed_lamberts
 
   end
 
+"""
+Overloaded ephemeris function to allow calling with just the name of the planet
+"""
   function ephemeris(planet_name::String,date::Real)
 
     planet = Planet(planet_name)
